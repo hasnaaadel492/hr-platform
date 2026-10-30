@@ -1,4 +1,5 @@
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 export default function RootLayout({
@@ -11,6 +12,7 @@ export default function RootLayout({
       <body className="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
         <ThemeProvider>
           {children}
+          <Toaster position="top-center" richColors closeButton />
         </ThemeProvider>
       </body>
     </html>

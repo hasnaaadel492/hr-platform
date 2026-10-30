@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { Plus, Users, Search, Edit3, Trash2 } from 'lucide-react';
 import AddEmployeeModal from './AddEmployeeModal';
+import EditEmployeeModal from './EditEmployeeModal';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface EmployeesClientProps {
   employees: any[];
@@ -14,32 +16,39 @@ export default function EmployeesClient({ employees }: EmployeesClientProps) {
   const router = useRouter();
   const supabase = createClient();
   
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+const [employeeToDelete, setEmployeeToDelete] = useState<any>(null);
 
-  // فلترة الموظفين بناءً على البحث
   const filteredEmployees = employees.filter((emp) => 
     emp.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.job_title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // دالة الحذف
-  const handleDelete = async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) return;
-    
-    setDeletingId(id);
-    try {
-      const { error } = await supabase.from('profiles').delete().eq('id', id);
-      if (error) throw error;
-      router.refresh();
-    } catch (err: any) {
-      alert('خطأ أثناء الحذف: ' + err.message);
-    } finally {
-      setDeletingId(null);
-    }
-  };
+const confirmDelete = (emp: any) => {
+  setEmployeeToDelete(emp);
+  setDeleteModalOpen(true);
+};
+  const handleDelete = async () => {
+  if (!employeeToDelete) return;
+  
+  setDeletingId(employeeToDelete.id);
+  try {
+    const { error } = await supabase.from('profiles').delete().eq('id', employeeToDelete.id);
+    if (error) throw error;
+    toast.success('تم حذف الموظف بنجاح');
+    setDeleteModalOpen(false);
+    setEmployeeToDelete(null);
+    router.refresh();
+  } catch (err: any) {
+    toast.error('حدث خطأ أثناء الحذف: ' + err.message);
+  } finally {
+    setDeletingId(null);
+  }
+};
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -50,7 +59,7 @@ export default function EmployeesClient({ employees }: EmployeesClientProps) {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">عرض وإدارة جميع موظفي الشركة والصلاحيات</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setIsAddModalOpen(true)}
           className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm cursor-pointer"
         >
           <Plus className="w-5 h-5" />
@@ -125,14 +134,23 @@ export default function EmployeesClient({ employees }: EmployeesClientProps) {
                     </td>
                     <td className="py-4 px-6 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        {/* زر التعديل */}
                         <button 
-                          onClick={() => handleDelete(emp.id)}
-                          disabled={deletingId === emp.id}
-                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors cursor-pointer"
-                          title="حذف الموظف"
+                          onClick={() => setSelectedEmployee(emp)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg transition-colors cursor-pointer"
+                          title="تعديل الموظف"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Edit3 className="w-4 h-4" />
                         </button>
+                        {/* زر الحذف */}
+<button 
+  onClick={() => confirmDelete(emp)}
+  disabled={deletingId === emp.id}
+  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+  title="حذف الموظف"
+>
+  <Trash2 className="w-4 h-4" />
+</button>
                       </div>
                     </td>
                   </tr>
@@ -143,8 +161,50 @@ export default function EmployeesClient({ employees }: EmployeesClientProps) {
         </div>
       </div>
 
-      {/* Modal إضافة موظف */}
-      <AddEmployeeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      {/* مودال الإضافة */}
+      <AddEmployeeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
+      
+      {/* مودال التعديل */}
+      <EditEmployeeModal 
+        isOpen={!!selectedEmployee} 
+        onClose={() => setSelectedEmployee(null)} 
+        employee={selectedEmployee} 
+      />
+
+      {/* Modal تأكيد الحذف العصري */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" dir="rtl">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-gray-100 dark:border-gray-800 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center font-bold shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">تأكيد الحذف</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">هل أنت متأكد من رغبتك في حذف الموظف <span className="font-semibold text-gray-700 dark:text-gray-200">"{employeeToDelete?.full_name}"</span>؟ لا يمكن التراجع عن هذا الإجراء.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setDeleteModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                disabled={deletingId === employeeToDelete?.id}
+                onClick={handleDelete}
+                className="px-5 py-2 rounded-xl text-sm font-medium bg-red-600 hover:bg-red-700 text-white shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {deletingId === employeeToDelete?.id ? 'جاري الحذف...' : 'نعم، قم بالحذف'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

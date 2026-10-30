@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { X, UserPlus, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, UserPlus, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface AddEmployeeModalProps {
   isOpen: boolean;
@@ -15,7 +16,6 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
   const supabase = createClient();
 
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -27,15 +27,13 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
 
   if (!isOpen) return null;
 
- const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setToast(null);
 
     try {
       const { error } = await supabase.from('profiles').insert([
         {
-          id: crypto.randomUUID(),
           full_name: formData.full_name,
           email: formData.email,
           job_title: formData.job_title,
@@ -46,21 +44,15 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
 
       if (error) throw error;
 
-      setToast({ message: 'تم إضافة الموظف بنجاح!', type: 'success' });
-
-      setTimeout(() => {
-        setFormData({ full_name: '', email: '', job_title: '', salary: '', role: 'employee' });
-        setToast(null);
-        onClose();
-        router.refresh();
-      }, 1200);
+      toast.success('تم إضافة الموظف بنجاح!');
+      
+      setFormData({ full_name: '', email: '', job_title: '', salary: '', role: 'employee' });
+      onClose();
+      router.refresh();
 
     } catch (err: any) {
       console.error("Supabase Insert Error Details:", err);
-      setToast({ 
-        message: 'خطأ من قاعدة البيانات: ' + (err.message || 'تأكد من أعمدة الجدول'), 
-        type: 'error' 
-      });
+      toast.error('حدث خطأ أثناء إضافة الموظف: ' + (err.message || 'حاول مرة أخرى'));
     } finally {
       setLoading(false);
     }
@@ -78,27 +70,14 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
           </div>
           <button 
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* نموذج البيانات */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 relative">
-          
-          {/* تصميم الـ Toaster العصري داخل النافذة */}
-          {toast && (
-            <div className={`flex items-center gap-3 p-4 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-200 ${
-              toast.type === 'success' 
-                ? 'bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800' 
-                : 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
-            }`}>
-              {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
-              <span>{toast.message}</span>
-            </div>
-          )}
-
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">الاسم بالكامل *</label>
             <input
@@ -152,7 +131,7 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
             <select
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all cursor-pointer"
             >
               <option value="employee">موظف (Employee)</option>
               <option value="hr">مسؤول HR (HR Manager)</option>
@@ -165,7 +144,7 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
             >
               إلغاء
             </button>
