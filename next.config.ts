@@ -12,12 +12,8 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  // إضافة إعدادات تجاهل أخطاء التايب سكريبت والـ Linter أثناء الـ Build على Vercel
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 };
 
